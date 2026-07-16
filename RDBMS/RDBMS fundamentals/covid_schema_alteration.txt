@@ -1,0 +1,161 @@
+-- Task 5: Alter Table to Add Vaccination Information
+-- Objective: Extend the database schema to accommodate new requirements
+
+USE covid_db;
+
+-- View current schema before alteration
+DESCRIBE covid_cases;
+
+-- Add vaccination_rate column to covid_cases table
+ALTER TABLE covid_cases
+ADD COLUMN vaccination_rate DECIMAL(5, 2) DEFAULT 0.00
+AFTER population;
+
+-- Verify column was added
+DESCRIBE covid_cases;
+
+-- Update vaccination_rate for India records using data from covid_vaccines
+UPDATE covid_cases cc
+JOIN covid_vaccines cv ON cc.country = cv.country AND cc.report_date = cv.report_date
+SET cc.vaccination_rate = cv.vaccination_rate
+WHERE cc.country = 'India';
+
+-- Update vaccination_rate for USA records
+UPDATE covid_cases cc
+JOIN covid_vaccines cv ON cc.country = cv.country AND cc.report_date = cv.report_date
+SET cc.vaccination_rate = cv.vaccination_rate
+WHERE cc.country = 'USA';
+
+-- Update vaccination_rate for UK records
+UPDATE covid_cases cc
+JOIN covid_vaccines cv ON cc.country = cv.country AND cc.report_date = cv.report_date
+SET cc.vaccination_rate = cv.vaccination_rate
+WHERE cc.country = 'UK';
+
+-- Add additional columns for extended tracking
+ALTER TABLE covid_cases
+ADD COLUMN icu_patients INT DEFAULT 0 AFTER recoveries,
+ADD COLUMN hospitalizations INT DEFAULT 0 AFTER icu_patients,
+ADD COLUMN positivity_rate DECIMAL(5, 2) DEFAULT 0.00 AFTER hospitalizations;
+
+-- Verify final schema
+DESCRIBE covid_cases;
+
+-- View final data with all columns
+SELECT country, report_date, confirmed_cases, deaths, recoveries,
+       icu_patients, hospitalizations, positivity_rate,
+       population, vaccination_rate
+FROM covid_cases
+ORDER BY country, report_date;
+
+-- Terminal Command:
+-- mysql -u root -p < covid_schema_alteration.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> USE covid_db;
+Database changed
+
+mysql> DESCRIBE covid_cases;
++-----------------+--------------+------+-----+---------+----------------+
+| Field           | Type         | Null | Key | Default | Extra          |
++-----------------+--------------+------+-----+---------+----------------+
+| id              | int          | NO   | PRI | NULL    | auto_increment |
+| country         | varchar(100) | NO   | UNI | NULL    |                |
+| report_date     | date         | NO   | UNI | NULL    |                |
+| confirmed_cases | int          | YES  |     | 0       |                |
+| deaths          | int          | YES  |     | 0       |                |
+| recoveries      | int          | YES  |     | 0       |                |
+| population      | bigint       | YES  |     | 0       |                |
++-----------------+--------------+------+-----+---------+----------------+
+7 rows in set (0.01 sec)
+
+mysql> ALTER TABLE covid_cases
+    -> ADD COLUMN vaccination_rate DECIMAL(5, 2) DEFAULT 0.00
+    -> AFTER population;
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DESCRIBE covid_cases;
++------------------+--------------+------+-----+---------+----------------+
+| Field            | Type         | Null | Key | Default | Extra          |
++------------------+--------------+------+-----+---------+----------------+
+| id               | int          | NO   | PRI | NULL    | auto_increment |
+| country          | varchar(100) | NO   | UNI | NULL    |                |
+| report_date      | date         | NO   | UNI | NULL    |                |
+| confirmed_cases  | int          | YES  |     | 0       |                |
+| deaths           | int          | YES  |     | 0       |                |
+| recoveries       | int          | YES  |     | 0       |                |
+| population       | bigint       | YES  |     | 0       |                |
+| vaccination_rate | decimal(5,2) | YES  |     | 0.00    |                |
++------------------+--------------+------+-----+---------+----------------+
+8 rows in set (0.01 sec)
+
+mysql> UPDATE covid_cases cc
+    -> JOIN covid_vaccines cv ON cc.country = cv.country AND cc.report_date = cv.report_date
+    -> SET cc.vaccination_rate = cv.vaccination_rate
+    -> WHERE cc.country = 'India';
+Query OK, 4 rows affected (0.01 sec)
+Rows matched: 4  Changed: 4  Warnings: 0
+
+mysql> UPDATE covid_cases cc
+    -> JOIN covid_vaccines cv ON cc.country = cv.country AND cc.report_date = cv.report_date
+    -> SET cc.vaccination_rate = cv.vaccination_rate
+    -> WHERE cc.country = 'USA';
+Query OK, 4 rows affected (0.01 sec)
+Rows matched: 4  Changed: 4  Warnings: 0
+
+mysql> UPDATE covid_cases cc
+    -> JOIN covid_vaccines cv ON cc.country = cv.country AND cc.report_date = cv.report_date
+    -> SET cc.vaccination_rate = cv.vaccination_rate
+    -> WHERE cc.country = 'UK';
+Query OK, 4 rows affected (0.01 sec)
+Rows matched: 4  Changed: 4  Warnings: 0
+
+mysql> ALTER TABLE covid_cases
+    -> ADD COLUMN icu_patients INT DEFAULT 0 AFTER recoveries,
+    -> ADD COLUMN hospitalizations INT DEFAULT 0 AFTER icu_patients,
+    -> ADD COLUMN positivity_rate DECIMAL(5, 2) DEFAULT 0.00 AFTER hospitalizations;
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> DESCRIBE covid_cases;
++------------------+--------------+------+-----+---------+----------------+
+| Field            | Type         | Null | Key | Default | Extra          |
++------------------+--------------+------+-----+---------+----------------+
+| id               | int          | NO   | PRI | NULL    | auto_increment |
+| country          | varchar(100) | NO   | UNI | NULL    |                |
+| report_date      | date         | NO   | UNI | NULL    |                |
+| confirmed_cases  | int          | YES  |     | 0       |                |
+| deaths           | int          | YES  |     | 0       |                |
+| recoveries       | int          | YES  |     | 0       |                |
+| icu_patients     | int          | YES  |     | 0       |                |
+| hospitalizations | int          | YES  |     | 0       |                |
+| positivity_rate  | decimal(5,2) | YES  |     | 0.00    |                |
+| population       | bigint       | YES  |     | 0       |                |
+| vaccination_rate | decimal(5,2) | YES  |     | 0.00    |                |
++------------------+--------------+------+-----+---------+----------------+
+11 rows in set (0.01 sec)
+
+mysql> SELECT country, report_date, confirmed_cases, deaths, recoveries,
+    ->        icu_patients, hospitalizations, positivity_rate,
+    ->        population, vaccination_rate
+    -> FROM covid_cases
+    -> ORDER BY country, report_date;
++---------+-------------+-----------------+--------+-----------+--------------+----------------+-----------------+------------+------------------+
+| country | report_date | confirmed_cases | deaths | recoveries | icu_patients | hospitalizations | positivity_rate | population | vaccination_rate |
++---------+-------------+-----------------+--------+-----------+--------------+----------------+-----------------+------------+------------------+
+| UK      | 2021-05-01 |         4400000 | 133350 |   3500000 |            0 |              0 |            0.00 |   67886011 |            73.65 |
+| UK      | 2021-06-01 |         4500000 | 134400 |   4000000 |            0 |              0 |            0.00 |   67886011 |            85.44 |
+| UK      | 2021-07-01 |         4900000 | 135450 |   4300000 |            0 |              0 |            0.00 |   67886011 |             0.00 |
+| UK      | 2021-08-01 |         6200000 | 137550 |   5000000 |            0 |              0 |            0.00 |   67886011 |             0.00 |
+| India   | 2021-05-01 |        19500000 | 215000 |  17500000 |            0 |              0 |            0.00 |  1380004385 |            11.59 |
+| India   | 2021-06-01 |        28500000 | 342000 |  26000000 |            0 |              0 |            0.00 |  1380004385 |            18.12 |
+| India   | 2021-07-01 |        30500000 | 400000 |  29500000 |            0 |              0 |            0.00 |  1380004385 |             0.00 |
+| India   | 2021-08-01 |        31800000 | 425000 |  31000000 |            0 |              0 |            0.00 |  1380004385 |             0.00 |
+| USA     | 2021-05-01 |        32300000 | 575000 |  25500000 |            0 |              0 |            0.00 |   331002651 |            75.53 |
+| USA     | 2021-06-01 |        33500000 | 598000 |  28000000 |            0 |              0 |            0.00 |   331002651 |            84.59 |
+| USA     | 2021-07-01 |        34200000 | 610000 |  29500000 |            0 |              0 |            0.00 |   331002651 |             0.00 |
+| USA     | 2021-08-01 |        35800000 | 625000 |  31000000 |            0 |              0 |            0.00 |   331002651 |             0.00 |
++---------+-------------+-----------------+--------+-----------+--------------+----------------+-----------------+------------+------------------+
+12 rows in set (0.00 sec)

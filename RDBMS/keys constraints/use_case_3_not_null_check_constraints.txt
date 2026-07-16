@@ -1,0 +1,133 @@
+-- Use Case 3: Add Constraints to Ensure Data Quality
+-- Objective: Apply NOT NULL and CHECK constraints on critical columns
+
+CREATE DATABASE IF NOT EXISTS covid_db_constraints;
+USE covid_db_constraints;
+
+-- Table with NOT NULL and CHECK constraints
+CREATE TABLE covid_cases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT NOT NULL DEFAULT 0,
+    deaths INT NOT NULL DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    CHECK (deaths <= confirmed_cases),
+    CHECK (confirmed_cases >= 0),
+    CHECK (deaths >= 0),
+    CHECK (recoveries >= 0),
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Insert valid records
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011);
+
+-- This will FAIL: deaths (500000) > confirmed_cases (100000)
+-- INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths)
+-- VALUES ('Test', '2021-01-01', 100000, 500000);
+
+-- This will FAIL: NULL in NOT NULL column
+-- INSERT INTO covid_cases (report_date, confirmed_cases, deaths)
+-- VALUES ('2021-01-01', 100000, 5000);
+
+-- This will FAIL: negative confirmed_cases
+-- INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths)
+-- VALUES ('Test', '2021-01-01', -100, 50);
+
+-- Verify data
+SELECT * FROM covid_cases ORDER BY country, report_date;
+
+-- Show constraints
+DESCRIBE covid_cases;
+SHOW CREATE TABLE covid_cases;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_3_not_null_check_constraints.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> CREATE DATABASE IF NOT EXISTS covid_db_constraints;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE covid_db_constraints;
+Database changed
+
+mysql> CREATE TABLE covid_cases (
+    ->     id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     country VARCHAR(100) NOT NULL,
+    ->     report_date DATE NOT NULL,
+    ->     confirmed_cases INT NOT NULL DEFAULT 0,
+    ->     deaths INT NOT NULL DEFAULT 0,
+    ->     recoveries INT DEFAULT 0,
+    ->     population BIGINT DEFAULT 0,
+    ->     CHECK (deaths <= confirmed_cases),
+    ->     CHECK (confirmed_cases >= 0),
+    ->     CHECK (deaths >= 0),
+    ->     CHECK (recoveries >= 0),
+    ->     UNIQUE KEY unique_country_date (country, report_date)
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+    -> ('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+    -> ('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+    -> ('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+    -> ('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+    -> ('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011);
+Query OK, 5 rows affected (0.01 sec)
+
+mysql> SELECT * FROM covid_cases ORDER BY country, report_date;
++----+---------+-------------+-----------------+--------+-----------+------------+
+| id | country | report_date | confirmed_cases | deaths | recoveries | population |
++----+---------+-------------+-----------------+--------+-----------+------------+
+|  5 | UK      | 2021-05-01 |         4400000 | 127000 |   3500000 |   67886011 |
+|  1 | India   | 2021-05-01 |        19500000 | 215000 |  17500000 |  1380004385 |
+|  2 | India   | 2021-06-01 |        28000000 | 340000 |  25500000 |  1380004385 |
+|  3 | USA     | 2021-05-01 |        32300000 | 575000 |  25000000 |   331002651 |
+|  4 | USA     | 2021-06-01 |        33500000 | 598000 |  27500000 |   331002651 |
++----+---------+-------------+-----------------+--------+-----------+------------+
+5 rows in set (0.00 sec)
+
+mysql> DESCRIBE covid_cases;
++-----------------+--------------+------+-----+---------+----------------+
+| Field           | Type         | Null | Key | Default | Extra          |
++-----------------+--------------+------+-----+---------+----------------+
+| id              | int          | NO   | PRI | NULL    | auto_increment |
+| country         | varchar(100) | NO   | UNI | NULL    |                |
+| report_date     | date         | NO   | UNI | NULL    |                |
+| confirmed_cases | int          | NO   |     | 0       |                |
+| deaths          | int          | NO   |     | 0       |                |
+| recoveries      | int          | YES  |     | 0       |                |
+| population      | bigint       | YES  |     | 0       |                |
++-----------------+--------------+------+-----+---------+----------------+
+7 rows in set (0.01 sec)
+
+mysql> SHOW CREATE TABLE covid_cases;
++------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table      | Create Table                                                                                                                                                                                                                                      |
++------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| covid_cases | CREATE TABLE `covid_cases` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `country` varchar(100) NOT NULL,
+  `report_date` date NOT NULL,
+  `confirmed_cases` int NOT NULL DEFAULT '0',
+  `deaths` int NOT NULL DEFAULT '0',
+  `recoveries` int DEFAULT '0',
+  `population` bigint DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_country_date` (`country`,`report_date`),
+  CONSTRAINT `covid_cases_chk_1` CHECK (`deaths` <= `confirmed_cases`),
+  CONSTRAINT `covid_cases_chk_2` CHECK (`confirmed_cases` >= 0),
+  CONSTRAINT `covid_cases_chk_3` CHECK (`deaths` >= 0),
+  CONSTRAINT `covid_cases_chk_4` CHECK (`recoveries` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 |
++------------+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)

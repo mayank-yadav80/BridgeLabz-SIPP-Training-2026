@@ -67,12 +67,12 @@ public class Product<T extends ProductCategory> {
      * Generic method to apply discount - demonstrates type parameter usage
      * Ensures discount is applied safely with bounds checking
      */
-    public <P extends Product<T>> void applyDiscount(P product, double percentage) {
+    public void applyDiscount(double percentage) {
         if (percentage < 0 || percentage > 100) {
             throw new IllegalArgumentException("Discount percentage must be between 0 and 100");
         }
-        product.discount = percentage;
-        System.out.println(String.format("✓ Applied %.2f%% discount to %s", percentage, product.productName));
+        this.discount = percentage;
+        System.out.println(String.format("✓ Applied %.2f%% discount to %s", percentage, this.productName));
     }
 
     /**

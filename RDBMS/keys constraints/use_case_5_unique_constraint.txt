@@ -1,0 +1,150 @@
+-- Use Case 5: Prevent Duplicate Country-Date Entries
+-- Objective: Enforce uniqueness on the combination of Country and Date
+
+CREATE DATABASE IF NOT EXISTS covid_db_unique;
+USE covid_db_unique;
+
+-- Table with UNIQUE constraint on (country, report_date)
+CREATE TABLE covid_cases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT NOT NULL DEFAULT 0,
+    deaths INT NOT NULL DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Insert valid unique records
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011),
+('UK', '2021-06-01', 4500000, 128000, 4000000, 67886011);
+
+-- This will FAIL: duplicate (India, 2021-05-01) already exists
+-- INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths)
+-- VALUES ('India', '2021-05-01', 19600000, 220000);
+
+-- This is VALID: same country, different date
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('India', '2021-07-01', 30500000, 400000, 29500000, 1380004385);
+
+-- This is VALID: same date, different country
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('Germany', '2021-05-01', 3600000, 87000, 3300000, 83783942);
+
+-- Verify data - no duplicates exist
+SELECT country, report_date, confirmed_cases, deaths
+FROM covid_cases
+ORDER BY country, report_date;
+
+-- Demonstrate: check for any duplicate attempts
+SELECT country, report_date, COUNT(*) as record_count
+FROM covid_cases
+GROUP BY country, report_date
+HAVING COUNT(*) > 1;
+
+-- Show unique constraint details
+DESCRIBE covid_cases;
+SHOW CREATE TABLE covid_cases;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_5_unique_constraint.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> CREATE DATABASE IF NOT EXISTS covid_db_unique;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE covid_db_unique;
+Database changed
+
+mysql> CREATE TABLE covid_cases (
+    ->     id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     country VARCHAR(100) NOT NULL,
+    ->     report_date DATE NOT NULL,
+    ->     confirmed_cases INT NOT NULL DEFAULT 0,
+    ->     deaths INT NOT NULL DEFAULT 0,
+    ->     recoveries INT DEFAULT 0,
+    ->     population BIGINT DEFAULT 0,
+    ->     UNIQUE KEY unique_country_date (country, report_date)
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+    -> ('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+    -> ('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+    -> ('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+    -> ('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+    -> ('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011),
+    -> ('UK', '2021-06-01', 4500000, 128000, 4000000, 67886011);
+Query OK, 6 rows affected (0.01 sec)
+
+mysql> INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+    -> ('India', '2021-07-01', 30500000, 400000, 29500000, 1380004385);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+    -> ('Germany', '2021-05-01', 3600000, 87000, 3300000, 83783942);
+Query OK, 1 row affected (0.01 sec)
+
+mysql> SELECT country, report_date, confirmed_cases, deaths
+    -> FROM covid_cases
+    -> ORDER BY country, report_date;
++---------+-------------+-----------------+--------+
+| country | report_date | confirmed_cases | deaths |
++---------+-------------+-----------------+--------+
+| UK      | 2021-05-01 |         4400000 | 127000 |
+| UK      | 2021-06-01 |         4500000 | 128000 |
+| India   | 2021-05-01 |        19500000 | 215000 |
+| India   | 2021-06-01 |        28000000 | 340000 |
+| India   | 2021-07-01 |        30500000 | 400000 |
+| Germany | 2021-05-01 |         3600000 |  87000 |
+| USA     | 2021-05-01 |        32300000 | 575000 |
+| USA     | 2021-06-01 |        33500000 | 598000 |
++---------+-------------+-----------------+--------+
+8 rows in set (0.00 sec)
+
+mysql> SELECT country, report_date, COUNT(*) as record_count
+    -> FROM covid_cases
+    -> GROUP BY country, report_date
+    -> HAVING COUNT(*) > 1;
+Empty set (0.00 sec)
+
+mysql> DESCRIBE covid_cases;
++-----------------+--------------+------+-----+---------+----------------+
+| Field           | Type         | Null | Key | Default | Extra          |
++-----------------+--------------+------+-----+---------+----------------+
+| id              | int          | NO   | PRI | NULL    | auto_increment |
+| country         | varchar(100) | NO   | UNI | NULL    |                |
+| report_date     | date         | NO   | UNI | NULL    |                |
+| confirmed_cases | int          | NO   |     | 0       |                |
+| deaths          | int          | NO   |     | 0       |                |
+| recoveries      | int          | YES  |     | 0       |                |
+| population      | bigint       | YES  |     | 0       |                |
++-----------------+--------------+------+-----+---------+----------------+
+7 rows in set (0.01 sec)
+
+mysql> SHOW CREATE TABLE covid_cases;
++------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| Table      | Create Table                                                                                                                                                                                        |
++------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+| covid_cases | CREATE TABLE `covid_cases` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `country` varchar(100) NOT NULL,
+  `report_date` date NOT NULL,
+  `confirmed_cases` int NOT NULL DEFAULT '0',
+  `deaths` int NOT NULL DEFAULT '0',
+  `recoveries` int DEFAULT '0',
+  `population` bigint DEFAULT '0',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_country_date` (`country`,`report_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 |
++------------+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)

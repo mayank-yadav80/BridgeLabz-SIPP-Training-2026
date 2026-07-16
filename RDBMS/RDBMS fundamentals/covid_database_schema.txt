@@ -1,0 +1,148 @@
+-- Task 1: Create COVID Database Schema
+-- Objective: Design a database to store COVID-19-related information
+
+CREATE DATABASE IF NOT EXISTS covid_db;
+USE covid_db;
+
+-- Table: covid_cases
+CREATE TABLE covid_cases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT DEFAULT 0,
+    deaths INT DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Table: covid_deaths
+CREATE TABLE covid_deaths (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    deaths INT DEFAULT 0,
+    recovery_rate DECIMAL(5, 2) DEFAULT 0.00,
+    mortality_rate DECIMAL(5, 2) DEFAULT 0.00,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Table: covid_vaccines
+CREATE TABLE covid_vaccines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    total_vaccinated BIGINT DEFAULT 0,
+    first_dose BIGINT DEFAULT 0,
+    second_dose BIGINT DEFAULT 0,
+    booster_dose BIGINT DEFAULT 0,
+    vaccination_rate DECIMAL(5, 2) DEFAULT 0.00,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Verify table creation
+SHOW TABLES;
+DESCRIBE covid_cases;
+DESCRIBE covid_deaths;
+DESCRIBE covid_vaccines;
+
+-- Terminal Command:
+-- mysql -u root -p < covid_database_schema.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> CREATE DATABASE IF NOT EXISTS covid_db;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE covid_db;
+Database changed
+
+mysql> CREATE TABLE covid_cases (
+    ->     id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     country VARCHAR(100) NOT NULL,
+    ->     report_date DATE NOT NULL,
+    ->     confirmed_cases INT DEFAULT 0,
+    ->     deaths INT DEFAULT 0,
+    ->     recoveries INT DEFAULT 0,
+    ->     population BIGINT DEFAULT 0,
+    ->     UNIQUE KEY unique_country_date (country, report_date)
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> CREATE TABLE covid_deaths (
+    ->     id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     country VARCHAR(100) NOT NULL,
+    ->     report_date DATE NOT NULL,
+    ->     deaths INT DEFAULT 0,
+    ->     recovery_rate DECIMAL(5, 2) DEFAULT 0.00,
+    ->     mortality_rate DECIMAL(5, 2) DEFAULT 0.00,
+    ->     UNIQUE KEY unique_country_date (country, report_date)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> CREATE TABLE covid_vaccines (
+    ->     id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     country VARCHAR(100) NOT NULL,
+    ->     report_date DATE NOT NULL,
+    ->     total_vaccinated BIGINT DEFAULT 0,
+    ->     first_dose BIGINT DEFAULT 0,
+    ->     second_dose BIGINT DEFAULT 0,
+    ->     booster_dose BIGINT DEFAULT 0,
+    ->     vaccination_rate DECIMAL(5, 2) DEFAULT 0.00,
+    ->     UNIQUE KEY unique_country_date (country, report_date)
+    -> );
+Query OK, 0 rows affected (0.02 sec)
+
+mysql> SHOW TABLES;
++--------------------+
+| Tables_in_covid_db |
++--------------------+
+| covid_cases        |
+| covid_deaths       |
+| covid_vaccines     |
++--------------------+
+3 rows in set (0.00 sec)
+
+mysql> DESCRIBE covid_cases;
++-----------------+--------------+------+-----+---------+----------------+
+| Field           | Type         | Null | Key | Default | Extra          |
++-----------------+--------------+------+-----+---------+----------------+
+| id              | int          | NO   | PRI | NULL    | auto_increment |
+| country         | varchar(100) | NO   | UNI | NULL    |                |
+| report_date     | date         | NO   | UNI | NULL    |                |
+| confirmed_cases | int          | YES  |     | 0       |                |
+| deaths          | int          | YES  |     | 0       |                |
+| recoveries      | int          | YES  |     | 0       |                |
+| population      | bigint       | YES  |     | 0       |                |
++-----------------+--------------+------+-----+---------+----------------+
+7 rows in set (0.01 sec)
+
+mysql> DESCRIBE covid_deaths;
++----------------+--------------+------+-----+---------+----------------+
+| Field          | Type         | Null | Key | Default | Extra          |
++----------------+--------------+------+-----+---------+----------------+
+| id             | int          | NO   | PRI | NULL    | auto_increment |
+| country        | varchar(100) | NO   | UNI | NULL    |                |
+| report_date    | date         | NO   | UNI | NULL    |                |
+| deaths         | int          | YES  |     | 0       |                |
+| recovery_rate  | decimal(5,2) | YES  |     | 0.00    |                |
+| mortality_rate | decimal(5,2) | YES  |     | 0.00    |                |
++----------------+--------------+------+-----+---------+----------------+
+6 rows in set (0.01 sec)
+
+mysql> DESCRIBE covid_vaccines;
++------------------+--------------+------+-----+---------+----------------+
+| Field            | Type         | Null | Key | Default | Extra          |
++------------------+--------------+------+-----+---------+----------------+
+| id               | int          | NO   | PRI | NULL    | auto_increment |
+| country          | varchar(100) | NO   | UNI | NULL    |                |
+| report_date      | date         | NO   | UNI | NULL    |                |
+| total_vaccinated | bigint       | YES  |     | 0       |                |
+| first_dose       | bigint       | YES  |     | 0       |                |
+| second_dose      | bigint       | YES  |     | 0       |                |
+| booster_dose     | bigint       | YES  |     | 0       |                |
+| vaccination_rate | decimal(5,2) | YES  |     | 0.00    |                |
++------------------+--------------+------+-----+---------+----------------+
+9 rows in set (0.01 sec)

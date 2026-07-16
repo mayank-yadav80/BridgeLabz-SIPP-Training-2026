@@ -53,14 +53,9 @@ public class MarketplaceDemo {
         // Apply discounts using generic methods
         System.out.println("\n--- Applying Discounts (Using Generic Methods) ---");
         
-        Product<BookCategory> discountedBook = book1;
-        discountedBook.applyDiscount(discountedBook, 10);
-        
-        Product<ClothingCategory> discountedClothing = clothing2;
-        discountedClothing.applyDiscount(discountedClothing, 15);
-        
-        Product<GadgetCategory> discountedGadget = gadget1;
-        discountedGadget.applyDiscount(discountedGadget, 20);
+        book1.applyDiscount(10);
+        clothing2.applyDiscount(15);
+        gadget1.applyDiscount(20);
 
         // Apply bulk discounts
         System.out.println("\n--- Applying Bulk Discounts ---");

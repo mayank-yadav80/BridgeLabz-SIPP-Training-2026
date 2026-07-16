@@ -1,0 +1,111 @@
+-- Use Case 1: Define Primary Keys in COVID Tables
+-- Objective: Ensure each country has only one COVID record per reporting date
+-- using a composite primary key
+
+CREATE DATABASE IF NOT EXISTS covid_db_pk;
+USE covid_db_pk;
+
+-- Table with composite primary key on (country, report_date)
+CREATE TABLE covid_cases (
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT NOT NULL DEFAULT 0,
+    deaths INT NOT NULL DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    PRIMARY KEY (country, report_date)
+);
+
+-- Insert valid records (no duplicates for same country + date)
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011);
+
+-- This will FAIL due to duplicate primary key (India, 2021-05-01)
+-- INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths)
+-- VALUES ('India', '2021-05-01', 19600000, 220000);
+
+-- Verify data
+SELECT * FROM covid_cases ORDER BY country, report_date;
+
+-- Show table structure with primary key
+DESCRIBE covid_cases;
+
+-- Show key information
+SHOW CREATE TABLE covid_cases;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_1_primary_key.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> CREATE DATABASE IF NOT EXISTS covid_db_pk;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE covid_db_pk;
+Database changed
+
+mysql> CREATE TABLE covid_cases (
+    ->     country VARCHAR(100) NOT NULL,
+    ->     report_date DATE NOT NULL,
+    ->     confirmed_cases INT NOT NULL DEFAULT 0,
+    ->     deaths INT NOT NULL DEFAULT 0,
+    ->     recoveries INT DEFAULT 0,
+    ->     population BIGINT DEFAULT 0,
+    ->     PRIMARY KEY (country, report_date)
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+    -> ('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+    -> ('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+    -> ('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+    -> ('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+    -> ('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011);
+Query OK, 5 rows affected (0.01 sec)
+
+mysql> SELECT * FROM covid_cases ORDER BY country, report_date;
++---------+-------------+-----------------+--------+-----------+------------+
+| country | report_date | confirmed_cases | deaths | recoveries | population |
++---------+-------------+-----------------+--------+-----------+------------+
+| UK      | 2021-05-01 |         4400000 | 127000 |   3500000 |   67886011 |
+| India   | 2021-05-01 |        19500000 | 215000 |  17500000 |  1380004385 |
+| India   | 2021-06-01 |        28000000 | 340000 |  25500000 |  1380004385 |
+| USA     | 2021-05-01 |        32300000 | 575000 |  25000000 |   331002651 |
+| USA     | 2021-06-01 |        33500000 | 598000 |  27500000 |   331002651 |
++---------+-------------+-----------------+--------+-----------+------------+
+5 rows in set (0.00 sec)
+
+mysql> DESCRIBE covid_cases;
++-----------------+--------------+------+-----+---------+-------+
+| Field           | Type         | Null | Key | Default | Extra |
++-----------------+--------------+------+-----+---------+-------+
+| country         | varchar(100) | NO   | PRI | NULL    |       |
+| report_date     | date         | NO   | PRI | NULL    |       |
+| confirmed_cases | int          | NO   |     | 0       |       |
+| deaths          | int          | NO   |     | 0       |       |
+| recoveries      | int          | YES  |     | 0       |       |
+| population      | bigint       | YES  |     | 0       |       |
++-----------------+--------------+------+-----+---------+-------+
+6 rows in set (0.01 sec)
+
+mysql> SHOW CREATE TABLE covid_cases;
++------------+----------------------------------------------------------------------------------------------------------------------------------+
+| Table      | Create Table                                                                                                                     |
++------------+----------------------------------------------------------------------------------------------------------------------------------+
+| covid_cases | CREATE TABLE `covid_cases` (
+  `country` varchar(100) NOT NULL,
+  `report_date` date NOT NULL,
+  `confirmed_cases` int NOT NULL DEFAULT '0',
+  `deaths` int NOT NULL DEFAULT '0',
+  `recoveries` int DEFAULT '0',
+  `population` bigint DEFAULT '0',
+  PRIMARY KEY (`country`,`report_date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 |
++------------+----------------------------------------------------------------------------------------------------------------------------------+
+1 row in set (0.00 sec)
