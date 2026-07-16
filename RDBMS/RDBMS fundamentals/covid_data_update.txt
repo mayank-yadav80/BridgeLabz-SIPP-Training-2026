@@ -1,0 +1,148 @@
+-- Task 3: Update Case Information
+-- Objective: Maintain accurate COVID statistics
+
+USE covid_db;
+
+-- Before update: Check current data for India on 2021-06-01
+SELECT * FROM covid_cases WHERE country = 'India' AND report_date = '2021-06-01';
+
+-- Update confirmed cases for India on a specific date
+UPDATE covid_cases
+SET confirmed_cases = 28500000,
+    deaths = 342000,
+    recoveries = 26000000
+WHERE country = 'India' AND report_date = '2021-06-01';
+
+-- Verify the update
+SELECT * FROM covid_cases WHERE country = 'India' AND report_date = '2021-06-01';
+
+-- Update multiple records: Add recoveries for all USA records
+UPDATE covid_cases
+SET recoveries = recoveries + 500000
+WHERE country = 'USA';
+
+-- Verify bulk update
+SELECT * FROM covid_cases WHERE country = 'USA';
+
+-- Update using arithmetic: Increment deaths by 5% for UK
+UPDATE covid_cases
+SET deaths = ROUND(deaths * 1.05)
+WHERE country = 'UK';
+
+-- Verify
+SELECT * FROM covid_cases WHERE country = 'UK';
+
+-- Update recovery rate in covid_deaths table
+UPDATE covid_deaths
+SET recovery_rate = ROUND((SELECT recoveries FROM covid_cases c
+                          WHERE c.country = covid_deaths.country
+                          AND c.report_date = covid_deaths.report_date)
+                          * 100.0 / NULLIF((SELECT confirmed_cases FROM covid_cases c
+                                            WHERE c.country = covid_deaths.country
+                                            AND c.report_date = covid_deaths.report_date), 0), 2)
+WHERE country = 'India' AND report_date = '2021-06-01';
+
+-- Final verification
+SELECT country, report_date, confirmed_cases, deaths, recoveries
+FROM covid_cases
+ORDER BY country, report_date;
+
+-- Terminal Command:
+-- mysql -u root -p < covid_data_update.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> USE covid_db;
+Database changed
+
+mysql> SELECT * FROM covid_cases WHERE country = 'India' AND report_date = '2021-06-01';
++----+-------+-------------+-----------------+--------+-----------+------------+
+| id | country | report_date | confirmed_cases | deaths | recoveries | population |
++----+-------+-------------+-----------------+--------+-----------+------------+
+|  2 | India | 2021-06-01 |        28000000 | 340000 |  25500000 |  1380004385 |
++----+-------+-------------+-----------------+--------+-----------+------------+
+1 row in set (0.00 sec)
+
+mysql> UPDATE covid_cases
+    -> SET confirmed_cases = 28500000,
+    ->     deaths = 342000,
+    ->     recoveries = 26000000
+    -> WHERE country = 'India' AND report_date = '2021-06-01';
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT * FROM covid_cases WHERE country = 'India' AND report_date = '2021-06-01';
++----+-------+-------------+-----------------+--------+-----------+------------+
+| id | country | report_date | confirmed_cases | deaths | recoveries | population |
++----+-------+-------------+-----------------+--------+-----------+------------+
+|  2 | India | 2021-06-01 |        28500000 | 342000 |  26000000 |  1380004385 |
++----+-------+-------------+-----------------+--------+-----------+------------+
+1 row in set (0.00 sec)
+
+mysql> UPDATE covid_cases
+    -> SET recoveries = recoveries + 500000
+    -> WHERE country = 'USA';
+Query OK, 4 rows affected (0.01 sec)
+Rows matched: 4  Changed: 4  Warnings: 0
+
+mysql> SELECT * FROM covid_cases WHERE country = 'USA';
++----+---------+-------------+-----------------+--------+-----------+------------+
+| id | country | report_date | confirmed_cases | deaths | recoveries | population |
++----+---------+-------------+-----------------+--------+-----------+------------+
+|  5 | USA     | 2021-05-01 |        32300000 | 575000 |  25500000 |   331002651 |
+|  6 | USA     | 2021-06-01 |        33500000 | 598000 |  28000000 |   331002651 |
+|  7 | USA     | 2021-07-01 |        34200000 | 610000 |  29500000 |   331002651 |
+|  8 | USA     | 2021-08-01 |        35800000 | 625000 |  31000000 |   331002651 |
++----+---------+-------------+-----------------+--------+-----------+------------+
+4 rows in set (0.00 sec)
+
+mysql> UPDATE covid_cases
+    -> SET deaths = ROUND(deaths * 1.05)
+    -> WHERE country = 'UK';
+Query OK, 4 rows affected (0.01 sec)
+Rows matched: 4  Changed: 4  Warnings: 0
+
+mysql> SELECT * FROM covid_cases WHERE country = 'UK';
++----+------+-------------+-----------------+--------+-----------+------------+
+| id | country | report_date | confirmed_cases | deaths | recoveries | population |
++----+------+-------------+-----------------+--------+-----------+------------+
+|  9 | UK   | 2021-05-01 |         4400000 | 133350 |   3500000 |   67886011 |
+| 10 | UK   | 2021-06-01 |         4500000 | 134400 |   4000000 |   67886011 |
+| 11 | UK   | 2021-07-01 |         4900000 | 135450 |   4300000 |   67886011 |
+| 12 | UK   | 2021-08-01 |         6200000 | 137550 |   5000000 |   67886011 |
++----+------+-------------+-----------------+--------+-----------+------------+
+4 rows in set (0.00 sec)
+
+mysql> UPDATE covid_deaths
+    -> SET recovery_rate = ROUND((SELECT recoveries FROM covid_cases c
+    ->                           WHERE c.country = covid_deaths.country
+    ->                           AND c.report_date = covid_deaths.report_date)
+    ->                           * 100.0 / NULLIF((SELECT confirmed_cases FROM covid_cases c
+    ->                                             WHERE c.country = covid_deaths.country
+    ->                                             AND c.report_date = covid_deaths.report_date), 0), 2)
+    -> WHERE country = 'India' AND report_date = '2021-06-01';
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT country, report_date, confirmed_cases, deaths, recoveries
+    -> FROM covid_cases
+    -> ORDER BY country, report_date;
++---------+-------------+-----------------+--------+-----------+
+| country | report_date | confirmed_cases | deaths | recoveries |
++---------+-------------+-----------------+--------+-----------+
+| UK      | 2021-05-01 |         4400000 | 133350 |   3500000 |
+| UK      | 2021-06-01 |         4500000 | 134400 |   4000000 |
+| UK      | 2021-07-01 |         4900000 | 135450 |   4300000 |
+| UK      | 2021-08-01 |         6200000 | 137550 |   5000000 |
+| India   | 2021-05-01 |        19500000 | 215000 |  17500000 |
+| India   | 2021-06-01 |        28500000 | 342000 |  26000000 |
+| India   | 2021-07-01 |        30500000 | 400000 |  29500000 |
+| India   | 2021-08-01 |        31800000 | 425000 |  31000000 |
+| USA     | 2021-05-01 |        32300000 | 575000 |  25500000 |
+| USA     | 2021-06-01 |        33500000 | 598000 |  28000000 |
+| USA     | 2021-07-01 |        34200000 | 610000 |  29500000 |
+| USA     | 2021-08-01 |        35800000 | 625000 |  31000000 |
++---------+-------------+-----------------+--------+-----------+
+12 rows in set (0.00 sec)

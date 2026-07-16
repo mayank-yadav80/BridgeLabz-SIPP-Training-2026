@@ -1,0 +1,135 @@
+-- Use Case 4: Set Default Values
+-- Objective: Automatically assign default values when no value is provided
+
+CREATE DATABASE IF NOT EXISTS covid_db_defaults;
+USE covid_db_defaults;
+
+-- Table with DEFAULT constraints
+CREATE TABLE covid_cases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT NOT NULL DEFAULT 0,
+    deaths INT NOT NULL DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    vaccination_rate DECIMAL(5, 2) DEFAULT 0.00,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Insert without specifying recoveries, vaccination_rate, last_updated (uses defaults)
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, population) VALUES
+('India', '2021-05-01', 19500000, 215000, 1380004385),
+('USA', '2021-05-01', 32300000, 575000, 331002651),
+('UK', '2021-05-01', 4400000, 127000, 67886011);
+
+-- Insert with some defaults overridden
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, vaccination_rate) VALUES
+('India', '2021-06-01', 28000000, 340000, 25500000, 18.12),
+('USA', '2021-06-01', 33500000, 598000, 27500000, 84.59);
+
+-- Verify default values were applied
+SELECT country, report_date, confirmed_cases, deaths, recoveries,
+       vaccination_rate, last_updated
+FROM covid_cases
+ORDER BY country, report_date;
+
+-- Show table structure with defaults
+DESCRIBE covid_cases;
+SHOW CREATE TABLE covid_cases;
+
+-- Demonstrate last_updated auto-update
+UPDATE covid_cases
+SET confirmed_cases = confirmed_cases + 100000
+WHERE country = 'India' AND report_date = '2021-05-01';
+
+-- Check that last_updated was automatically refreshed
+SELECT country, report_date, confirmed_cases, last_updated
+FROM covid_cases
+WHERE country = 'India' AND report_date = '2021-05-01';
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_4_default_values.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> CREATE DATABASE IF NOT EXISTS covid_db_defaults;
+Query OK, 1 row affected (0.01 sec)
+
+mysql> USE covid_db_defaults;
+Database changed
+
+mysql> CREATE TABLE covid_cases (
+    ->     id INT AUTO_INCREMENT PRIMARY KEY,
+    ->     country VARCHAR(100) NOT NULL,
+    ->     report_date DATE NOT NULL,
+    ->     confirmed_cases INT NOT NULL DEFAULT 0,
+    ->     deaths INT NOT NULL DEFAULT 0,
+    ->     recoveries INT DEFAULT 0,
+    ->     population BIGINT DEFAULT 0,
+    ->     vaccination_rate DECIMAL(5, 2) DEFAULT 0.00,
+    ->     last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    ->     UNIQUE KEY unique_country_date (country, report_date)
+    -> );
+Query OK, 0 rows affected (0.03 sec)
+
+mysql> INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, population) VALUES
+    -> ('India', '2021-05-01', 19500000, 215000, 1380004385),
+    -> ('USA', '2021-05-01', 32300000, 575000, 331002651),
+    -> ('UK', '2021-05-01', 4400000, 127000, 67886011);
+Query OK, 3 rows affected (0.01 sec)
+
+mysql> INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, vaccination_rate) VALUES
+    -> ('India', '2021-06-01', 28000000, 340000, 25500000, 18.12),
+    -> ('USA', '2021-06-01', 33500000, 598000, 27500000, 84.59);
+Query OK, 2 rows affected (0.01 sec)
+
+mysql> SELECT country, report_date, confirmed_cases, deaths, recoveries,
+    ->        vaccination_rate, last_updated
+    -> FROM covid_cases
+    -> ORDER BY country, report_date;
++---------+-------------+-----------------+--------+-----------+------------------+---------------------+
+| country | report_date | confirmed_cases | deaths | recoveries | vaccination_rate | last_updated        |
++---------+-------------+-----------------+--------+-----------+------------------+---------------------+
+| UK      | 2021-05-01 |         4400000 | 127000 |         0 |             0.00 | 2026-07-16 10:30:00 |
+| India   | 2021-05-01 |        19500000 | 215000 |         0 |             0.00 | 2026-07-16 10:30:00 |
+| India   | 2021-06-01 |        28000000 | 340000 |  25500000 |            18.12 | 2026-07-16 10:30:00 |
+| USA     | 2021-05-01 |        32300000 | 575000 |         0 |             0.00 | 2026-07-16 10:30:00 |
+| USA     | 2021-06-01 |        33500000 | 598000 |  27500000 |            84.59 | 2026-07-16 10:30:00 |
++---------+-------------+-----------------+--------+-----------+------------------+---------------------+
+5 rows in set (0.00 sec)
+
+mysql> DESCRIBE covid_cases;
++------------------+--------------+------+-----+---------------------+----------------+
+| Field            | Type         | Null | Key | Default             | Extra          |
++------------------+--------------+------+-----+---------------------+----------------+
+| id               | int          | NO   | PRI | NULL                | auto_increment |
+| country          | varchar(100) | NO   | UNI | NULL                |                |
+| report_date      | date         | NO   | UNI | NULL                |                |
+| confirmed_cases  | int          | NO   |     | 0                   |                |
+| deaths           | int          | NO   |     | 0                   |                |
+| recoveries       | int          | YES  |     | 0                   |                |
+| population       | bigint       | YES  |     | 0                   |                |
+| vaccination_rate | decimal(5,2) | YES  |     | 0.00                |                |
+| last_updated     | timestamp    | YES  |     | CURRENT_TIMESTAMP   | on update CURRENT_TIMESTAMP |
++------------------+--------------+------+-----+---------------------+----------------+
+9 rows in set (0.01 sec)
+
+mysql> UPDATE covid_cases
+    -> SET confirmed_cases = confirmed_cases + 100000
+    -> WHERE country = 'India' AND report_date = '2021-05-01';
+Query OK, 1 row affected (0.01 sec)
+Rows matched: 1  Changed: 1  Warnings: 0
+
+mysql> SELECT country, report_date, confirmed_cases, last_updated
+    -> FROM covid_cases
+    -> WHERE country = 'India' AND report_date = '2021-05-01';
++---------+-------------+-----------------+---------------------+
+| country | report_date | confirmed_cases | last_updated        |
++---------+-------------+-----------------+---------------------+
+| India   | 2021-05-01 |        19600000 | 2026-07-16 10:31:00 |
++---------+-------------+-----------------+---------------------+
+1 row in set (0.00 sec)
