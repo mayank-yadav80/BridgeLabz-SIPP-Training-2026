@@ -1,0 +1,166 @@
+-- Use Case 20: Find Countries Present in Deaths but Not Cases
+-- Objective: Identify data inconsistencies where countries appear in one table but not another using NOT IN sub-query
+
+CREATE DATABASE IF NOT EXISTS covid_db_subqueries_notin;
+USE covid_db_subqueries_notin;
+
+-- Table: covid_deaths
+CREATE TABLE covid_deaths (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    deaths INT DEFAULT 0,
+    recovery_rate DECIMAL(5, 2) DEFAULT 0.00,
+    mortality_rate DECIMAL(5, 2) DEFAULT 0.00,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Table: covid_cases
+CREATE TABLE covid_cases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT DEFAULT 0,
+    deaths INT DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Insert sample data into covid_deaths (includes 'Nepal' and 'Sri Lanka' which are NOT in covid_cases)
+INSERT INTO covid_deaths (country, report_date, deaths, recovery_rate, mortality_rate) VALUES
+('India', '2021-05-01', 215000, 89.74, 1.10),
+('India', '2021-06-01', 340000, 91.07, 1.21),
+('USA', '2021-05-01', 575000, 77.39, 1.78),
+('USA', '2021-06-01', 598000, 82.08, 1.78),
+('UK', '2021-05-01', 127000, 79.54, 2.88),
+('UK', '2021-06-01', 128000, 88.88, 2.84),
+('Brazil', '2021-05-01', 430000, 87.66, 2.79),
+('Brazil', '2021-06-01', 480000, 88.88, 2.80),
+('Germany', '2021-05-01', 87000, 91.66, 2.41),
+('Germany', '2021-06-01', 90000, 94.59, 2.43),
+('Nepal', '2021-05-01', 3500, 90.12, 1.21),
+('Nepal', '2021-06-01', 7800, 88.50, 1.34),
+('Sri Lanka', '2021-05-01', 850, 95.20, 0.30),
+('Sri Lanka', '2021-06-01', 1200, 94.80, 0.35);
+
+-- Insert sample data into covid_cases (missing 'Nepal' and 'Sri Lanka')
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011),
+('UK', '2021-06-01', 4500000, 128000, 4000000, 67886011),
+('Brazil', '2021-05-01', 15400000, 430000, 13500000, 212559417),
+('Brazil', '2021-06-01', 17100000, 480000, 15200000, 212559417),
+('Germany', '2021-05-01', 3600000, 87000, 3300000, 83783942),
+('Germany', '2021-06-01', 3700000, 90000, 3500000, 83783942);
+
+-- Step 1: Find countries in covid_deaths but NOT in covid_cases using NOT IN
+SELECT DISTINCT country
+FROM covid_deaths
+WHERE country NOT IN (SELECT DISTINCT country FROM covid_cases)
+ORDER BY country;
+
+-- Step 2: Find countries in covid_cases but NOT in covid_deaths (reverse check)
+SELECT DISTINCT country
+FROM covid_cases
+WHERE country NOT IN (SELECT DISTINCT country FROM covid_deaths)
+ORDER BY country;
+
+-- Step 3: Full data inconsistency report using NOT IN
+SELECT 'In Deaths but not Cases' AS inconsistency_type, d.country
+FROM (SELECT DISTINCT country FROM covid_deaths) d
+WHERE d.country NOT IN (SELECT DISTINCT country FROM covid_cases)
+
+UNION ALL
+
+SELECT 'In Cases but not Deaths' AS inconsistency_type, c.country
+FROM (SELECT DISTINCT country FROM covid_cases) c
+WHERE c.country NOT IN (SELECT DISTINCT country FROM covid_deaths)
+
+ORDER BY inconsistency_type, country;
+
+-- Step 4: Alternative using NOT EXISTS for better performance on large datasets
+SELECT DISTINCT d.country
+FROM covid_deaths d
+WHERE NOT EXISTS (
+    SELECT 1 FROM covid_cases c WHERE c.country = d.country
+)
+ORDER BY d.country;
+
+-- Step 5: Show total deaths recorded for countries with data inconsistency
+SELECT d.country, SUM(d.deaths) AS total_deaths
+FROM covid_deaths d
+WHERE d.country NOT IN (SELECT DISTINCT country FROM covid_cases)
+GROUP BY d.country
+ORDER BY total_deaths DESC;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_20_deaths_not_in_cases.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> SELECT DISTINCT country
+    -> FROM covid_deaths
+    -> WHERE country NOT IN (SELECT DISTINCT country FROM covid_cases)
+    -> ORDER BY country;
++------------+
+| country    |
++------------+
+| Nepal      |
+| Sri Lanka  |
++------------+
+2 rows in set (0.00 sec)
+
+mysql> SELECT DISTINCT country
+    -> FROM covid_cases
+    -> WHERE country NOT IN (SELECT DISTINCT country FROM covid_deaths)
+    -> ORDER BY country;
+Empty set (0.00 sec)
+
+mysql> SELECT 'In Deaths but not Cases' AS inconsistency_type, d.country
+    -> FROM (SELECT DISTINCT country FROM covid_deaths) d
+    -> WHERE d.country NOT IN (SELECT DISTINCT country FROM covid_cases)
+    -> UNION ALL
+    -> SELECT 'In Cases but not Deaths' AS inconsistency_type, c.country
+    -> FROM (SELECT DISTINCT country FROM covid_cases) c
+    -> WHERE c.country NOT IN (SELECT DISTINCT country FROM covid_deaths)
+    -> ORDER BY inconsistency_type, country;
++------------------------+------------+
+| inconsistency_type     | country    |
++------------------------+------------+
+| In Deaths but not Cases| Nepal      |
+| In Deaths but not Cases| Sri Lanka  |
++------------------------+------------+
+2 rows in set (0.00 sec)
+
+mysql> SELECT DISTINCT d.country
+    -> FROM covid_deaths d
+    -> WHERE NOT EXISTS (
+    ->     SELECT 1 FROM covid_cases c WHERE c.country = d.country
+    -> )
+    -> ORDER BY d.country;
++------------+
+| country    |
++------------+
+| Nepal      |
+| Sri Lanka  |
++------------+
+2 rows in set (0.00 sec)
+
+mysql> SELECT d.country, SUM(d.deaths) AS total_deaths
+    -> FROM covid_deaths d
+    -> WHERE d.country NOT IN (SELECT DISTINCT country FROM covid_cases)
+    -> GROUP BY d.country
+    -> ORDER BY total_deaths DESC;
++------------+-------------+
+| country    | total_deaths|
++------------+-------------+
+| Nepal      |       11300 |
+| Sri Lanka  |        2050 |
++------------+-------------+
+2 rows in set (0.00 sec)

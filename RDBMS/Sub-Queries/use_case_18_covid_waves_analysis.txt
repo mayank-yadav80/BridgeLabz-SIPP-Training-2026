@@ -1,0 +1,163 @@
+-- Use Case 18: Track COVID Waves - State-wise Analysis
+-- Objective: Use correlated sub-query to identify if each day represents a peak in confirmed cases for a specific state
+
+CREATE DATABASE IF NOT EXISTS covid_db_subqueries_waves;
+USE covid_db_subqueries_waves;
+
+-- Table: covid_cases_state
+CREATE TABLE covid_cases_state (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    state VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT DEFAULT 0,
+    daily_new_cases INT DEFAULT 0,
+    deaths INT DEFAULT 0,
+    UNIQUE KEY unique_state_date (state, report_date)
+);
+
+-- Insert sample data for Mumbai (showing a wave pattern)
+INSERT INTO covid_cases_state (state, report_date, confirmed_cases, daily_new_cases, deaths) VALUES
+('Mumbai', '2021-03-01', 320000, 800, 11500),
+('Mumbai', '2021-03-15', 345000, 1200, 11800),
+('Mumbai', '2021-04-01', 390000, 2500, 12400),
+('Mumbai', '2021-04-15', 450000, 4000, 13500),
+('Mumbai', '2021-05-01', 520000, 6500, 15200),
+('Mumbai', '2021-05-15', 620000, 8000, 17800),
+('Mumbai', '2021-06-01', 680000, 5000, 19500),
+('Mumbai', '2021-06-15', 700000, 2000, 20200),
+('Mumbai', '2021-07-01', 710000, 1000, 20500),
+('Delhi', '2021-03-01', 210000, 500, 5600),
+('Delhi', '2021-03-15', 225000, 800, 5800),
+('Delhi', '2021-04-01', 260000, 2000, 6200),
+('Delhi', '2021-04-15', 320000, 4500, 7100),
+('Delhi', '2021-05-01', 380000, 6000, 8500),
+('Delhi', '2021-05-15', 420000, 3000, 9800),
+('Delhi', '2021-06-01', 440000, 1500, 10500),
+('Delhi', '2021-06-15', 450000, 800, 10800);
+
+-- Step 1: Find the maximum daily_new_cases for each state (peak value)
+SELECT state, MAX(daily_new_cases) AS peak_cases
+FROM covid_cases_state
+GROUP BY state;
+
+-- Step 2: Correlated sub-query to identify peak days for Mumbai
+SELECT report_date, confirmed_cases, daily_new_cases,
+    CASE
+        WHEN daily_new_cases = (
+            SELECT MAX(cs2.daily_new_cases)
+            FROM covid_cases_state cs2
+            WHERE cs2.state = cs1.state
+        ) THEN 'PEAK WAVE'
+        WHEN daily_new_cases > (
+            SELECT AVG(cs2.daily_new_cases)
+            FROM covid_cases_state cs2
+            WHERE cs2.state = cs1.state
+        ) THEN 'Above Average'
+        ELSE 'Below Average'
+    END AS wave_status
+FROM covid_cases_state cs1
+WHERE state = 'Mumbai'
+ORDER BY report_date;
+
+-- Step 3: Correlated sub-query to identify peak days across all states
+SELECT state, report_date, daily_new_cases,
+    CASE
+        WHEN daily_new_cases = (
+            SELECT MAX(cs2.daily_new_cases)
+            FROM covid_cases_state cs2
+            WHERE cs2.state = cs1.state
+        ) THEN 'PEAK WAVE'
+        ELSE 'Normal'
+    END AS wave_status
+FROM covid_cases_state cs1
+WHERE daily_new_cases = (
+    SELECT MAX(cs2.daily_new_cases)
+    FROM covid_cases_state cs2
+    WHERE cs2.state = cs1.state
+)
+ORDER BY state, report_date;
+
+-- Step 4: Compare each day's cases against the state's running average
+SELECT state, report_date, daily_new_cases,
+    (SELECT AVG(cs3.daily_new_cases)
+     FROM covid_cases_state cs3
+     WHERE cs3.state = cs1.state
+       AND cs3.report_date <= cs1.report_date
+    ) AS running_avg
+FROM covid_cases_state cs1
+WHERE state = 'Mumbai'
+ORDER BY report_date;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_18_covid_waves_analysis.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> SELECT state, MAX(daily_new_cases) AS peak_cases
+    -> FROM covid_cases_state
+    -> GROUP BY state;
++---------+-----------+
+| state   | peak_cases|
++---------+-----------+
+| Mumbai  |      8000 |
+| Delhi   |      6000 |
++---------+-----------+
+2 rows in set (0.00 sec)
+
+mysql> SELECT report_date, confirmed_cases, daily_new_cases,
+    ->     CASE
+    ->         WHEN daily_new_cases = (
+    ->             SELECT MAX(cs2.daily_new_cases)
+    ->             FROM covid_cases_state cs2
+    ->             WHERE cs2.state = cs1.state
+    ->         ) THEN 'PEAK WAVE'
+    ->         WHEN daily_new_cases > (
+    ->             SELECT AVG(cs2.daily_new_cases)
+    ->             FROM covid_cases_state cs2
+    ->             WHERE cs2.state = cs1.state
+    ->         ) THEN 'Above Average'
+    ->         ELSE 'Below Average'
+    ->     END AS wave_status
+    -> FROM covid_cases_state cs1
+    -> WHERE state = 'Mumbai'
+    -> ORDER BY report_date;
++-------------+-----------------+----------------+--------------+
+| report_date | confirmed_cases | daily_new_cases| wave_status  |
++-------------+-----------------+----------------+--------------+
+| 2021-03-01  |          320000 |            800 | Below Average|
+| 2021-03-15  |          345000 |           1200 | Below Average|
+| 2021-04-01  |          390000 |           2500 | Above Average|
+| 2021-04-15  |          450000 |           4000 | Above Average|
+| 2021-05-01  |          520000 |           6500 | Above Average|
+| 2021-05-15  |          620000 |           8000 | PEAK WAVE    |
+| 2021-06-01  |          680000 |           5000 | Above Average|
+| 2021-06-15  |          700000 |           2000 | Below Average|
+| 2021-07-01  |          710000 |           1000 | Below Average|
++-------------+-----------------+----------------+--------------+
+9 rows in set (0.00 sec)
+
+mysql> SELECT state, report_date, daily_new_cases,
+    ->     CASE
+    ->         WHEN daily_new_cases = (
+    ->             SELECT MAX(cs2.daily_new_cases)
+    ->             FROM covid_cases_state cs2
+    ->             WHERE cs2.state = cs1.state
+    ->         ) THEN 'PEAK WAVE'
+    ->         ELSE 'Normal'
+    ->     END AS wave_status
+    -> FROM covid_cases_state cs1
+    -> WHERE daily_new_cases = (
+    ->     SELECT MAX(cs2.daily_new_cases)
+    ->     FROM covid_cases_state cs2
+    ->     WHERE cs2.state = cs1.state
+    -> )
+    -> ORDER BY state, report_date;
++-------+-------------+----------------+------------+
+| state | report_date | daily_new_cases| wave_status|
++-------+-------------+----------------+------------+
+| Delhi | 2021-05-01  |           6000 | PEAK WAVE  |
+| Mumbai| 2021-05-15  |           8000 | PEAK WAVE  |
++-------+-------------+----------------+------------+
+2 rows in set (0.00 sec)

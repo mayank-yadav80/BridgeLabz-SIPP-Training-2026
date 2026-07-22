@@ -1,0 +1,114 @@
+-- Use Case 16: Find Countries with Above-Average Death Counts
+-- Objective: Identify countries with a death count exceeding the global average using a scalar sub-query
+
+CREATE DATABASE IF NOT EXISTS covid_db_subqueries;
+USE covid_db_subqueries;
+
+-- Table: covid_cases
+CREATE TABLE covid_cases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT DEFAULT 0,
+    deaths INT DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Table: covid_deaths
+CREATE TABLE covid_deaths (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    deaths INT DEFAULT 0,
+    recovery_rate DECIMAL(5, 2) DEFAULT 0.00,
+    mortality_rate DECIMAL(5, 2) DEFAULT 0.00,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Insert sample data into covid_cases
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011),
+('UK', '2021-06-01', 4500000, 128000, 4000000, 67886011),
+('Brazil', '2021-05-01', 15400000, 430000, 13500000, 212559417),
+('Brazil', '2021-06-01', 17100000, 480000, 15200000, 212559417),
+('Germany', '2021-05-01', 3600000, 87000, 3300000, 83783942),
+('Germany', '2021-06-01', 3700000, 90000, 3500000, 83783942);
+
+-- Insert sample data into covid_deaths
+INSERT INTO covid_deaths (country, report_date, deaths, recovery_rate, mortality_rate) VALUES
+('India', '2021-05-01', 215000, 89.74, 1.10),
+('India', '2021-06-01', 340000, 91.07, 1.21),
+('USA', '2021-05-01', 575000, 77.39, 1.78),
+('USA', '2021-06-01', 598000, 82.08, 1.78),
+('UK', '2021-05-01', 127000, 79.54, 2.88),
+('UK', '2021-06-01', 128000, 88.88, 2.84),
+('Brazil', '2021-05-01', 430000, 87.66, 2.79),
+('Brazil', '2021-06-01', 480000, 88.88, 2.80),
+('Germany', '2021-05-01', 87000, 91.66, 2.41),
+('Germany', '2021-06-01', 90000, 94.59, 2.43);
+
+-- Step 1: Find the global average death count
+SELECT AVG(deaths) AS global_avg_deaths FROM covid_deaths;
+
+-- Step 2: Use scalar sub-query to find countries with above-average deaths
+SELECT country, deaths, report_date
+FROM covid_deaths
+WHERE deaths > (SELECT AVG(deaths) FROM covid_deaths)
+ORDER BY deaths DESC;
+
+-- Alternative: Using covid_cases table
+SELECT country, MAX(deaths) AS max_deaths
+FROM covid_cases
+GROUP BY country
+HAVING MAX(deaths) > (SELECT AVG(deaths) FROM covid_deaths)
+ORDER BY max_deaths DESC;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_16_above_average_deaths.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> SELECT AVG(deaths) AS global_avg_deaths FROM covid_deaths;
++------------------+
+| global_avg_deaths|
++------------------+
+|        306500.00 |
++------------------+
+1 row in set (0.00 sec)
+
+mysql> SELECT country, deaths, report_date
+    -> FROM covid_deaths
+    -> WHERE deaths > (SELECT AVG(deaths) FROM covid_deaths)
+    -> ORDER BY deaths DESC;
++---------+--------+-------------+
+| country | deaths | report_date |
++---------+--------+-------------+
+| USA     | 598000 | 2021-06-01  |
+| USA     | 575000 | 2021-05-01  |
+| Brazil  | 480000 | 2021-06-01  |
+| Brazil  | 430000 | 2021-05-01  |
+| India   | 340000 | 2021-06-01  |
++---------+--------+-------------+
+5 rows in set (0.00 sec)
+
+mysql> SELECT country, MAX(deaths) AS max_deaths
+    -> FROM covid_cases
+    -> GROUP BY country
+    -> HAVING MAX(deaths) > (SELECT AVG(deaths) FROM covid_deaths)
+    -> ORDER BY max_deaths DESC;
++---------+------------+
+| country | max_deaths |
++---------+------------+
+| USA     |     598000 |
+| Brazil  |     480000 |
+| India   |     340000 |
++---------+------------+
+3 rows in set (0.00 sec)

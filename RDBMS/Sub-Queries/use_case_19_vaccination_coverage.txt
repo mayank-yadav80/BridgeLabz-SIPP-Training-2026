@@ -1,0 +1,173 @@
+-- Use Case 19: Compare Vaccination Coverage
+-- Objective: Perform comprehensive coverage analysis by combining vaccinated and unvaccinated population counts using UNION
+
+CREATE DATABASE IF NOT EXISTS covid_db_subqueries_vaccination;
+USE covid_db_subqueries_vaccination;
+
+-- Table: covid_vaccines
+CREATE TABLE covid_vaccines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    total_vaccinated BIGINT DEFAULT 0,
+    first_dose BIGINT DEFAULT 0,
+    second_dose BIGINT DEFAULT 0,
+    booster_dose BIGINT DEFAULT 0,
+    vaccination_rate DECIMAL(5, 2) DEFAULT 0.00,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Table: covid_population
+CREATE TABLE covid_population (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL UNIQUE,
+    total_population BIGINT DEFAULT 0
+);
+
+-- Insert sample data into covid_vaccines
+INSERT INTO covid_vaccines (country, report_date, total_vaccinated, first_dose, second_dose, booster_dose, vaccination_rate) VALUES
+('India', '2021-06-01', 250000000, 250000000, 50000000, 0, 18.12),
+('India', '2021-07-01', 350000000, 350000000, 100000000, 0, 25.36),
+('USA', '2021-06-01', 170000000, 170000000, 140000000, 10000000, 51.36),
+('USA', '2021-07-01', 185000000, 185000000, 160000000, 25000000, 55.89),
+('UK', '2021-06-01', 40000000, 40000000, 28000000, 5000000, 58.93),
+('UK', '2021-07-01', 45000000, 45000000, 35000000, 10000000, 66.29),
+('Brazil', '2021-06-01', 80000000, 80000000, 30000000, 0, 37.64),
+('Brazil', '2021-07-01', 110000000, 110000000, 50000000, 0, 51.75),
+('Germany', '2021-06-01', 50000000, 50000000, 30000000, 0, 59.68),
+('Germany', '2021-07-01', 60000000, 60000000, 45000000, 5000000, 71.61);
+
+-- Insert sample data into covid_population
+INSERT INTO covid_population (country, total_population) VALUES
+('India', 1380004385),
+('USA', 331002651),
+('UK', 67886011),
+('Brazil', 212559417),
+('Germany', 83783942);
+
+-- Step 1: Show vaccinated population per country
+SELECT country, total_vaccinated AS population_count, 'Vaccinated' AS category
+FROM covid_vaccines
+WHERE report_date = '2021-07-01'
+ORDER BY country;
+
+-- Step 2: Show unvaccinated population per country using UNION
+SELECT v.country,
+       v.total_vaccinated AS population_count,
+       'Vaccinated' AS category
+FROM covid_vaccines v
+WHERE v.report_date = '2021-07-01'
+
+UNION
+
+SELECT p.country,
+       (p.total_population - v.total_vaccinated) AS population_count,
+       'Unvaccinated' AS category
+FROM covid_population p
+JOIN covid_vaccines v ON p.country = v.country
+WHERE v.report_date = '2021-07-01'
+ORDER BY country, category;
+
+-- Step 3: Comprehensive coverage analysis with vaccination and unvaccinated counts
+SELECT
+    v.country,
+    p.total_population,
+    v.total_vaccinated,
+    (p.total_population - v.total_vaccinated) AS unvaccinated,
+    v.vaccination_rate,
+    ROUND(((p.total_population - v.total_vaccinated) / p.total_population) * 100, 2) AS unvaccinated_pct
+FROM covid_vaccines v
+JOIN covid_population p ON v.country = p.country
+WHERE v.report_date = '2021-07-01'
+ORDER BY v.vaccination_rate DESC;
+
+-- Step 4: UNION ALL to show both doses and coverage side by side
+SELECT country, first_dose AS count, 'First Dose' AS dose_type
+FROM covid_vaccines
+WHERE report_date = '2021-07-01'
+
+UNION ALL
+
+SELECT country, second_dose, 'Second Dose'
+FROM covid_vaccines
+WHERE report_date = '2021-07-01'
+
+UNION ALL
+
+SELECT country, booster_dose, 'Booster Dose'
+FROM covid_vaccines
+WHERE report_date = '2021-07-01'
+ORDER BY country, dose_type;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_19_vaccination_coverage.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> SELECT country, total_vaccinated AS population_count, 'Vaccinated' AS category
+    -> FROM covid_vaccines
+    -> WHERE report_date = '2021-07-01'
+    -> ORDER BY country;
++---------+------------------+------------+
+| country | population_count | category   |
++---------+------------------+------------+
+| Brazil  |        110000000 | Vaccinated |
+| Germany |         60000000 | Vaccinated |
+| India   |        350000000 | Vaccinated |
+| UK      |         45000000 | Vaccinated |
+| USA     |        185000000 | Vaccinated |
++---------+------------------+------------+
+5 rows in set (0.00 sec)
+
+mysql> SELECT v.country,
+    ->        v.total_vaccinated AS population_count,
+    ->        'Vaccinated' AS category
+    -> FROM covid_vaccines v
+    -> WHERE v.report_date = '2021-07-01'
+    -> UNION
+    -> SELECT p.country,
+    ->        (p.total_population - v.total_vaccinated) AS population_count,
+    ->        'Unvaccinated' AS category
+    -> FROM covid_population p
+    -> JOIN covid_vaccines v ON p.country = v.country
+    -> WHERE v.report_date = '2021-07-01'
+    -> ORDER BY country, category;
++---------+------------------+-------------+
+| country | population_count | category    |
++---------+------------------+-------------+
+| Brazil  |        110000000 | Vaccinated  |
+| Brazil  |        102559417 | Unvaccinated|
+| Germany |         60000000 | Vaccinated  |
+| Germany |         23783942 | Unvaccinated|
+| India   |        350000000 | Vaccinated  |
+| India   |       1030004385 | Unvaccinated|
+| UK      |         45000000 | Vaccinated  |
+| UK      |         22886011 | Unvaccinated|
+| USA     |        185000000 | Vaccinated  |
+| USA     |        146002651 | Unvaccinated|
++---------+------------------+-------------+
+10 rows in set (0.00 sec)
+
+mysql> SELECT
+    ->     v.country,
+    ->     p.total_population,
+    ->     v.total_vaccinated,
+    ->     (p.total_population - v.total_vaccinated) AS unvaccinated,
+    ->     v.vaccination_rate,
+    ->     ROUND(((p.total_population - v.total_vaccinated) / p.total_population) * 100, 2) AS unvaccinated_pct
+    -> FROM covid_vaccines v
+    -> JOIN covid_population p ON v.country = p.country
+    -> WHERE v.report_date = '2021-07-01'
+    -> ORDER BY v.vaccination_rate DESC;
++---------+------------------+------------------+--------------+------------------+-------------------+
+| country | total_population | total_vaccinated | unvaccinated | vaccination_rate | unvaccinated_pct  |
++---------+------------------+------------------+--------------+------------------+-------------------+
+| Germany |         83783942 |         60000000 |     23783942 |            71.61 |             28.39 |
+| UK      |         67886011 |         45000000 |     22886011 |            66.29 |             33.71 |
+| Brazil  |        212559417 |        110000000 |    102559417 |            51.75 |             48.25 |
+| USA     |        331002651 |        185000000 |    146002651 |            55.89 |             44.11 |
+| India   |       1380004385 |        350000000 |   1030004385 |            25.36 |             74.64 |
++---------+------------------+------------------+--------------+------------------+-------------------+
+5 rows in set (0.00 sec)

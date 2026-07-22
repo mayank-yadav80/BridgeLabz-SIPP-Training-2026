@@ -1,0 +1,115 @@
+-- Use Case 17: Identify Countries Exceeding Case Threshold
+-- Objective: Find countries where maximum confirmed cases exceed 1 million using a sub-query with IN operator
+
+CREATE DATABASE IF NOT EXISTS covid_db_subqueries_threshold;
+USE covid_db_subqueries_threshold;
+
+-- Table: covid_cases
+CREATE TABLE covid_cases (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    country VARCHAR(100) NOT NULL,
+    report_date DATE NOT NULL,
+    confirmed_cases INT DEFAULT 0,
+    deaths INT DEFAULT 0,
+    recoveries INT DEFAULT 0,
+    population BIGINT DEFAULT 0,
+    UNIQUE KEY unique_country_date (country, report_date)
+);
+
+-- Insert sample data
+INSERT INTO covid_cases (country, report_date, confirmed_cases, deaths, recoveries, population) VALUES
+('India', '2021-05-01', 19500000, 215000, 17500000, 1380004385),
+('India', '2021-06-01', 28000000, 340000, 25500000, 1380004385),
+('USA', '2021-05-01', 32300000, 575000, 25000000, 331002651),
+('USA', '2021-06-01', 33500000, 598000, 27500000, 331002651),
+('UK', '2021-05-01', 4400000, 127000, 3500000, 67886011),
+('UK', '2021-06-01', 4500000, 128000, 4000000, 67886011),
+('Brazil', '2021-05-01', 15400000, 430000, 13500000, 212559417),
+('Brazil', '2021-06-01', 17100000, 480000, 15200000, 212559417),
+('Germany', '2021-05-01', 3600000, 87000, 3300000, 83783942),
+('Germany', '2021-06-01', 3700000, 90000, 3500000, 83783942),
+('Nepal', '2021-05-01', 350000, 3500, 200000, 29136808),
+('Nepal', '2021-06-01', 580000, 7800, 420000, 29136808);
+
+-- Step 1: Find countries where max confirmed cases exceed 1 million using sub-query
+SELECT DISTINCT country
+FROM covid_cases
+WHERE country IN (
+    SELECT country
+    FROM covid_cases
+    GROUP BY country
+    HAVING MAX(confirmed_cases) > 1000000
+)
+ORDER BY country;
+
+-- Alternative: Using EXISTS operator
+SELECT DISTINCT c1.country
+FROM covid_cases c1
+WHERE EXISTS (
+    SELECT 1
+    FROM covid_cases c2
+    WHERE c2.country = c1.country
+    GROUP BY c2.country
+    HAVING MAX(c2.confirmed_cases) > 1000000
+)
+ORDER BY c1.country;
+
+-- Find countries with max confirmed cases > 1 million and their details
+SELECT c.country, MAX(c.confirmed_cases) AS max_confirmed, c.population
+FROM covid_cases c
+WHERE c.country IN (
+    SELECT country
+    FROM covid_cases
+    GROUP BY country
+    HAVING MAX(confirmed_cases) > 1000000
+)
+GROUP BY c.country, c.population
+ORDER BY max_confirmed DESC;
+
+-- Terminal Command:
+-- mysql -u root -p < use_case_17_countries_exceeding_threshold.txt
+
+-- ============================================================
+-- OUTPUT
+-- ============================================================
+
+mysql> SELECT DISTINCT country
+    -> FROM covid_cases
+    -> WHERE country IN (
+    ->     SELECT country
+    ->     FROM covid_cases
+    ->     GROUP BY country
+    ->     HAVING MAX(confirmed_cases) > 1000000
+    -> )
+    -> ORDER BY country;
++---------+
+| country |
++---------+
+| Brazil  |
+| Germany |
+| India   |
+| UK      |
+| USA     |
++---------+
+5 rows in set (0.00 sec)
+
+mysql> SELECT c.country, MAX(c.confirmed_cases) AS max_confirmed, c.population
+    -> FROM covid_cases c
+    -> WHERE c.country IN (
+    ->     SELECT country
+    ->     FROM covid_cases
+    ->     GROUP BY country
+    ->     HAVING MAX(confirmed_cases) > 1000000
+    -> )
+    -> GROUP BY c.country, c.population
+    -> ORDER BY max_confirmed DESC;
++---------+----------------+------------+
+| country | max_confirmed  | population |
++---------+----------------+------------+
+| USA     |       33500000 |  331002651 |
+| India   |       28000000 | 1380004385 |
+| Brazil  |       17100000 |  212559417 |
+| UK      |        4500000 |   67886011 |
+| Germany |        3700000 |   83783942 |
++---------+----------------+------------+
+5 rows in set (0.00 sec)
